@@ -897,8 +897,7 @@ impl Blockstream {
             .post(format!("{}/tx", self.url))
             .body(raw_transaction_hex)
             .send()
-            .await
-            .expect("Transaction failed to be posted");
+            .await?;
 
         let trans_status = trans_resp.status();
         let trans_content = trans_resp.text().await?;
@@ -1309,14 +1308,20 @@ async fn test_transaction() {
 
 }
 
+#[tokio::test]
+async fn test_post_a_transaction() {
+    let raw_tx_data = "0100000000010141e5cc0928a3083bd6ea84b2955f1f5a01d6f7d5a0ff6dd797ba2d54f7fcd5bf0100000000ffffffff0201000000000000001600144074db37babb2ac2a6ad993219c09b2ffd4e39b09ae21d00000000001600143cb8f6ff881c210d051b562ab7cfff2ef53e2dda02473044022050a97fe6f89bcb995160507621a2a329f5d6de286758f63a57298ee562e0ec1e02206042ebc9e77dd7a38f197b85a8edc5018a0ce0422c4131b5d9ca5b0504de9e33012103d2f1f1b5b0915a302472d2a25a405641fbeca00ef7a5261252e28b7336bec61900000000";
+    let mut server = Server::new();
+    server.mock("POST", "/tx")
+    .with_status(200)
+    .with_header("content-type", "application/json")
+    .with_body(raw_tx_data).with_body_from_request(|_request| "c9ec56ecc714e2ec33d51519c647d6adb8469afcbd4b2a6a8052c7db29a00da2".into()).create();
 
-    // TODO(AS): delete this function, just using it when writing the mock tests
-    // #[tokio::test]
-    // async fn getting_actual_data() {
-    //     let blockstreamm_test_url = "https://blockstream.info/testnet/api";
-    //     let bs = Blockstream::new(blockstreamm_test_url).unwrap();
-    //     let for_txid = "4497bea5ea7784b6f188256fb7ecfb6108a4b8060aa9ed87d1cea5732c3eedba";
-    //     let tx = bs.transaction(for_txid).await.unwrap();
-    //     println!("tx: {:#?}", tx);
-    // }
+    let expected_txid = "c9ec56ecc714e2ec33d51519c647d6adb8469afcbd4b2a6a8052c7db29a00da2";
+    // check that the txid is correct
+    let bs = Blockstream::new(&server.url()).unwrap();
+    let txid = bs.post_a_transaction(raw_tx_data).await.unwrap();
+    assert_eq!(txid, expected_txid);
+}
+
 }

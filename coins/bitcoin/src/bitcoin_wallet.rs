@@ -185,6 +185,7 @@ type ErrorType = Error;
 
 
     let transaction_hex = BTransaction::serialize(&signed_tx)?;
+    
     let raw_transaction_hex: &'static str = Box::leak(transaction_hex.into_boxed_str());
     let tx_id =client.post_a_transaction(raw_transaction_hex).await?;
     Ok(tx_id)
